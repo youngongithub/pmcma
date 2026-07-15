@@ -55,3 +55,13 @@ def test_desmoothing_recovers_higher_private_risk(run_outputs):
         df.loc["annualized_volatility", "reported"]
     assert df.loc["correlation_to_public", "de-smoothed"] > \
         df.loc["correlation_to_public", "reported"]
+
+
+def test_liquidity_metric_wired_into_table(run_outputs):
+    df = pd.read_csv(run_outputs / "pe_vs_public_equity_demo_cma.csv",
+                     comment="#", index_col=0)
+    assert "max_sustainable_pace" in df.columns
+    assert float(df.loc["Private Equity (proxy)", "max_sustainable_pace"]) > 0
+    assert pd.isna(df.loc["Public Equity (MSCI ACWI)", "max_sustainable_pace"])
+    # supplementary per-period coverage detail is written
+    assert (run_outputs / "pe_vs_public_equity_demo_liquidity.csv").exists()

@@ -1,6 +1,7 @@
 """config in → CMA table + narrative out. The 'repeatable, governed workflow'."""
 from __future__ import annotations
 import yaml
+import pandas as pd
 from pathlib import Path
 from . import io, desmooth, pacing, cma
 # NOTE: liquidity (M3), dispersion (M4) and narrative are imported *lazily*
@@ -43,12 +44,22 @@ def run(config_path: str = "config/default.yaml") -> None:
         "contribution_rate", "yield_rate", "periods_per_year")})
     program = pacing.project_program(cfg["pacing"]["program_commitments"]["schedule"], pparams)
 
-    liq_tbl = None
+    liq_summary = None   # headline metric(s) for the CMA table
+    liq_cov = None       # per-period coverage detail (supplementary output)
     liq_cfg = cfg.get("liquidity") or {}
     if liq_cfg.get("enabled", False):
         from . import liquidity  # M3 — lazy
         stressed = liquidity.apply_shock(program, **liq_cfg["shock"])
-        liq_tbl = liquidity.liquidity_coverage(stressed, liq_cfg["liquid_sleeve_weight"])
+        liq_cov = liquidity.liquidity_coverage(stressed, liq_cfg["liquid_sleeve_weight"])
+        # headline: the largest commitment pace that never breaches under the shock
+        liq_params = dict(
+            pacing=pparams,
+            schedule=cfg["pacing"]["program_commitments"]["schedule"],
+            liquid_sleeve_weight=liq_cfg["liquid_sleeve_weight"],
+            redemption_demand=liq_cfg.get("redemption_demand", 0.0),
+        )
+        max_pace = liquidity.max_sustainable_pace(liq_params, liq_cfg["shock"])
+        liq_summary = pd.Series({"max_sustainable_pace": max_pace})
 
     disp = None
     if cfg.get("dispersion", {}).get("enabled", False):
@@ -59,13 +70,16 @@ def run(config_path: str = "config/default.yaml") -> None:
         sims = dispersion.simulate_selection(mu, sigma, d["n_sims"])
         disp = dispersion.dispersion_band(sims, horizon_years=10)
 
-    table = cma.assemble_cma_table(pub, priv_ds, program, liq_tbl, disp, ppy, label)
+    table = cma.assemble_cma_table(pub, priv_ds, program, liq_summary, disp, ppy, label)
 
     Path("outputs").mkdir(exist_ok=True)
     _write_labeled_csv(table, f"outputs/{run_name}_cma.csv",
                        table.attrs["title"], table.attrs["notes"])
     _write_labeled_csv(risk_tbl, f"outputs/{run_name}_desmooth.csv",
                        f"{label} — de-smoothing risk recovery — methodology demonstrator")
+    if liq_cov is not None:
+        _write_labeled_csv(liq_cov, f"outputs/{run_name}_liquidity.csv",
+                           f"{label} — liquidity coverage under shock — methodology demonstrator")
 
     # Narrative: human-in-the-loop (principle #3). Stays off until narrative.py
     # exists AND implements the review PAUSE — never auto-accept generated text.
@@ -76,7 +90,8 @@ def run(config_path: str = "config/default.yaml") -> None:
                                             nar_cfg.get("require_review", True))
         Path(f"outputs/{run_name}_note.md").write_text(note)
 
-    print(f"[pmcma] {run_name}: wrote outputs/{run_name}_cma.csv (+ _desmooth.csv). "
+    extras = ["_desmooth.csv"] + (["_liquidity.csv"] if liq_cov is not None else [])
+    print(f"[pmcma] {run_name}: wrote outputs/{run_name}_cma.csv (+ {', '.join(extras)}). "
           f"Label: {label}")
 
 

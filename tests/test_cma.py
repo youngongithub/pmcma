@@ -42,6 +42,17 @@ def test_public_corr_is_one_and_pacing_private_only():
     assert t.loc["Private Equity (proxy)", "pacing_invested_pct"] > 0
 
 
+def test_optional_liquidity_metrics_become_private_only_columns():
+    public, priv, pacing = _fixtures()
+    liq = pd.Series({"max_sustainable_pace": 0.42})
+    t = assemble_cma_table(public, priv, pacing, liq, None, 4, "demo")
+    assert t.loc["Private Equity (proxy)", "max_sustainable_pace"] == 0.42
+    assert np.isnan(t.loc["Public Equity", "max_sustainable_pace"])   # public has no pacing/liquidity
+    # omitted entirely when not provided
+    t2 = assemble_cma_table(public, priv, pacing, None, None, 4, "demo")
+    assert "max_sustainable_pace" not in t2.columns
+
+
 def test_optional_dispersion_band_renders_when_provided():
     public, priv, pacing = _fixtures()
     band = pd.Series({"p25": 0.020, "p50": 0.048, "p75": 0.077})  # annualized returns

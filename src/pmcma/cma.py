@@ -42,30 +42,10 @@ def _pacing_metric(pacing_summary: pd.DataFrame) -> float:
     return float("nan")
 
 
-def _scalar_or_none(frame, private_label):
-    """Defensive extraction of a single private-asset metric from an optional
-    M3/M4 summary. Convention (firmed up when those modules land): a column or
-    row keyed by the private label, else the first numeric cell. Returns None
-    (column omitted) rather than guessing wrongly."""
-    if frame is None:
-        return None
-    try:
-        if private_label in getattr(frame, "columns", []):
-            return float(pd.to_numeric(frame[private_label], errors="coerce").dropna().iloc[0])
-        if private_label in getattr(frame, "index", []):
-            return float(pd.to_numeric(frame.loc[private_label], errors="coerce").dropna().iloc[0])
-        stacked = frame.stack() if hasattr(frame, "stack") else pd.Series(frame)
-        return float(pd.to_numeric(stacked, errors="coerce").dropna().iloc[0])
-    except Exception:
-        warnings.warn("Could not extract a scalar metric from an optional summary; "
-                      "column omitted.", stacklevel=2)
-        return None
-
-
 def assemble_cma_table(public: pd.Series,
                        private_desmoothed: pd.Series,
                        pacing_summary: pd.DataFrame,
-                       liquidity_summary: pd.DataFrame | None,
+                       liquidity_summary: pd.Series | None,
                        dispersion_band: pd.Series | None,
                        periods_per_year: int,
                        source_label: str) -> pd.DataFrame:
@@ -106,10 +86,12 @@ def assemble_cma_table(public: pd.Series,
         {pub_name: float("nan"), priv_name: _pacing_metric(pacing_summary)}
     )
 
-    # M3 liquidity (optional) — private only
-    liq = _scalar_or_none(liquidity_summary, priv_name)
-    if liq is not None:
-        df["liquidity_stress"] = pd.Series({pub_name: float("nan"), priv_name: liq})
+    # M3 liquidity (optional) — private only. Contract: a pd.Series of named
+    # liquidity metrics for the private asset (e.g. {"max_sustainable_pace": 0.35}).
+    # Each metric becomes its own column; public rows are N/A.
+    if liquidity_summary is not None:
+        for metric, val in pd.Series(liquidity_summary).dropna().items():
+            df[str(metric)] = pd.Series({pub_name: float("nan"), priv_name: float(val)})
 
     # M4 dispersion band (optional) — private only, rendered "low–high"
     if dispersion_band is not None:
@@ -119,12 +101,20 @@ def assemble_cma_table(public: pd.Series,
                 {pub_name: None, priv_name: f"{band.min():.1%}–{band.max():.1%}"}
             )
 
+    notes = [
+        "expected_return is ARITHMETIC annualized (invariant to de-smoothing).",
+        "Private volatility and correlation are on a DE-SMOOTHED basis (Module 1);",
+        "pacing_invested_pct is the steady-state peak from Module 2.",
+    ]
+    if liquidity_summary is not None:
+        notes.append("max_sustainable_pace is the largest commitment pace (x base program) "
+                     "that avoids a liquidity breach under the config shock (Module 3).")
+    if dispersion_band is not None:
+        notes.append("dispersion_band is the p25–p75 annualized-return band across manager "
+                     "selection (Module 4).")
+    notes.append("Not a vendor CMA — synthetic/transparent inputs only.")
+
     df.attrs["title"] = f"{source_label} — methodology demonstrator"
     df.attrs["source_label"] = source_label
-    df.attrs["notes"] = (
-        "expected_return is ARITHMETIC annualized (invariant to de-smoothing). "
-        "Private volatility and correlation are on a DE-SMOOTHED basis (Module 1); "
-        "pacing_invested_pct is the steady-state peak from Module 2. "
-        "Not a vendor CMA — synthetic/transparent inputs only."
-    )
+    df.attrs["notes"] = " ".join(notes)
     return df

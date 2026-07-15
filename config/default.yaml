@@ -26,7 +26,7 @@ pacing:                     # Takahashi-Alexander params
     schedule: [100, 100, 100, 100, 100]
 
 liquidity:
-  enabled: false               # M3 not built yet; flip to true when liquidity.py lands
+  enabled: true                # M3 built; max_sustainable_pace wired into the CMA table
   target_private_weight: 0.15
   shock:                       # (indentation corrected from the handed draft)
     public_drawdown: -0.35       # peak public decline
