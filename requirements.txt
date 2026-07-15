@@ -1,0 +1,8 @@
+# Core deps for the MVP pipeline (de-smoothing, pacing, synthesis, config load).
+# Heavier deps (matplotlib, anthropic, pdfplumber) and dev deps (pytest) live
+# under pyproject.toml extras: .[full], .[dev].
+numpy>=1.26
+pandas>=2.1
+scipy>=1.11
+statsmodels>=0.14
+pyyaml>=6.0

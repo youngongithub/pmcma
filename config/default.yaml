@@ -1,0 +1,50 @@
+run_name: "pe_vs_public_equity_demo"
+data_source_label: "Methodology demonstrator — LPX Listed PE proxy / synthetic"
+
+private_asset:
+  name: "Private Equity (proxy)"
+  return_series: "data/samples/private_proxy_quarterly.csv"  # date,ret
+  frequency: "quarterly"
+
+public_asset:
+  name: "Public Equity (MSCI ACWI)"
+  return_series: "data/samples/public_quarterly.csv"
+
+desmooth:
+  method: "geltner"        # geltner | glm
+  glm_lags: 2              # only used if method = glm
+
+pacing:                     # Takahashi-Alexander params
+  commitment: 100.0
+  fund_life: 12            # years
+  bow_factor: 2.5          # B: back-loads distributions
+  growth_rate: 0.13        # G: annual NAV growth
+  contribution_rate: 0.25  # RC: fraction of uncalled called per period
+  yield_rate: 0.03         # min distribution yield on NAV
+  periods_per_year: 4
+  program_commitments:      # multi-vintage program (annual commitments)
+    schedule: [100, 100, 100, 100, 100]
+
+liquidity:
+  enabled: false               # M3 not built yet; flip to true when liquidity.py lands
+  target_private_weight: 0.15
+  shock:                       # (indentation corrected from the handed draft)
+    public_drawdown: -0.35       # peak public decline
+    distribution_haircut: 0.50   # GPs cut distributions in stress
+    call_acceleration: 1.0       # calls continue at normal pace
+  liquid_sleeve_weight: 0.85
+
+dispersion:
+  enabled: true                # M4 built and wired into the CMA table
+  metric: "tvpi"
+  top_quartile: 2.1
+  median: 1.6
+  bottom_quartile: 1.2
+  n_sims: 10000
+
+narrative:
+  enabled: false               # narrative.py not built; enabling MUST implement the
+                               # human-in-the-loop review PAUSE (principle #3)
+  model: "claude-sonnet-4-6"   # PLACEHOLDER — not a valid model id; replace with a
+                               # current Claude model id when building narrative.py
+  require_review: true

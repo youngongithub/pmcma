@@ -1,0 +1,17 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "pmcma"
+version = "0.1.0"
+description = "Private-markets CMA methodology demonstrator"
+requires-python = ">=3.11"
+dependencies = ["numpy", "pandas>=2.1", "scipy>=1.11", "statsmodels>=0.14", "pyyaml>=6.0"]
+
+[project.optional-dependencies]
+full = ["matplotlib>=3.8", "anthropic>=0.39", "pdfplumber>=0.11"]
+dev = ["pytest>=8.0"]
+
+[tool.setuptools.packages.find]
+where = ["src"]
