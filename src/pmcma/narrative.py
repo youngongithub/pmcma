@@ -12,7 +12,7 @@ import pandas as pd
 
 # Model used for GP-report extraction (accuracy-sensitive → most capable Opus).
 # The narrative model is passed in from config (config/default.yaml: narrative.model).
-_EXTRACTION_MODEL = "claude-opus-4-8"
+_EXTRACTION_MODEL = "claude-opus-5"
 _DIV = "─" * 70
 
 
@@ -29,9 +29,14 @@ def _is_interactive() -> bool:
     return sys.stdin.isatty()
 
 
-def _call_model(system: str, user: str, model: str, max_tokens: int = 4096) -> str:
+def _call_model(system: str, user: str, model: str, max_tokens: int = 16000) -> str:
     """Single Claude call via the official SDK. Credentials resolve from the
-    environment (ANTHROPIC_API_KEY or an `ant auth login` profile)."""
+    environment (ANTHROPIC_API_KEY or an `ant auth login` profile).
+
+    max_tokens budgets thinking AND response text together, and the Claude 5
+    models think by default — so this is sized well above the few hundred tokens
+    either prompt actually emits, to leave reasoning headroom without truncating.
+    Only text blocks are read out below; thinking blocks are skipped."""
     import anthropic  # lazy: only needed when narrative actually runs
 
     client = anthropic.Anthropic()

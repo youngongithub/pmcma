@@ -35,7 +35,7 @@ def test_build_prompt_carries_table_and_labeling():
 
 def test_generate_narrative_without_review_returns_model_draft(monkeypatch):
     monkeypatch.setattr(narr, "_call_model", lambda s, u, m, **k: "DRAFT NOTE")
-    out = generate_narrative(_table(), "claude-sonnet-4-6", require_review=False)
+    out = generate_narrative(_table(), "claude-sonnet-5", require_review=False)
     assert out == "DRAFT NOTE"
 
 
@@ -48,7 +48,7 @@ def test_review_pauses_and_returns_edited_text(monkeypatch):
         return "HUMAN-EDITED NOTE"
 
     monkeypatch.setattr(narr, "_human_review", fake_review)
-    out = generate_narrative(_table(), "claude-sonnet-4-6", require_review=True)
+    out = generate_narrative(_table(), "claude-sonnet-5", require_review=True)
     assert out == "HUMAN-EDITED NOTE"       # the reviewed text wins
     assert seen["text"] == "MODEL DRAFT"    # review saw the raw model draft
 
@@ -57,7 +57,7 @@ def test_review_required_raises_without_tty(monkeypatch):
     monkeypatch.setattr(narr, "_call_model", lambda s, u, m, **k: "DRAFT")
     monkeypatch.setattr(narr, "_is_interactive", lambda: False)
     with pytest.raises(ReviewRequiredError):
-        generate_narrative(_table(), "claude-sonnet-4-6", require_review=True)
+        generate_narrative(_table(), "claude-sonnet-5", require_review=True)
 
 
 def test_review_gate_confirms_on_accept(monkeypatch):

@@ -45,6 +45,6 @@ dispersion:
 narrative:
   enabled: false               # narrative.py not built; enabling MUST implement the
                                # human-in-the-loop review PAUSE (principle #3)
-  model: "claude-sonnet-4-6"   # valid current Claude model (Sonnet 4.6). Swap to
-                               # "claude-opus-4-8" for the most capable narrative.
+  model: "claude-sonnet-5"     # current Sonnet. Swap to "claude-opus-5" for the
+                               # most capable narrative.
   require_review: true
