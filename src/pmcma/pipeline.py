@@ -81,8 +81,9 @@ def run(config_path: str = "config/default.yaml") -> None:
         _write_labeled_csv(liq_cov, f"outputs/{run_name}_liquidity.csv",
                            f"{label} — liquidity coverage under shock — methodology demonstrator")
 
-    # Narrative: human-in-the-loop (principle #3). Stays off until narrative.py
-    # exists AND implements the review PAUSE — never auto-accept generated text.
+    # Narrative: human-in-the-loop (principle #3). require_review defaults to True
+    # so an absent key still pauses; the note is written only after the reviewer
+    # accepts — generated text is never auto-accepted.
     nar_cfg = cfg.get("narrative", {})
     if nar_cfg.get("enabled", False):
         from . import narrative  # lazy

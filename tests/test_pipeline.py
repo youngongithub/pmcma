@@ -2,7 +2,11 @@
 
 Runs pmcma.pipeline.run on the committed default config + sample data and checks
 the artifact is produced with BOTH asset rows (regression guard for the
-Series-name collision that silently dropped a row)."""
+Series-name collision that silently dropped a row).
+
+The narrative step is forced off here: it is a live API call gated on an
+interactive review pause, so it can neither run nor be meaningfully asserted on
+in a smoke test. tests/test_narrative.py covers it against a stubbed model."""
 import subprocess
 import sys
 from pathlib import Path
@@ -17,11 +21,18 @@ REPO = Path(__file__).resolve().parents[1]
 def run_outputs(tmp_path_factory):
     # run in-process but from the repo root so relative config/data/outputs resolve
     import os
+    import yaml
     from pmcma.pipeline import run
+    # copy the committed config with narrative disabled, so this test stays a pure
+    # CMA-artifact check no matter which way narrative.enabled is flipped
+    cfg = yaml.safe_load((REPO / "config" / "default.yaml").read_text())
+    cfg.setdefault("narrative", {})["enabled"] = False
+    cfg_path = tmp_path_factory.mktemp("cfg") / "default.yaml"
+    cfg_path.write_text(yaml.safe_dump(cfg))
     cwd = os.getcwd()
     os.chdir(REPO)
     try:
-        run("config/default.yaml")
+        run(str(cfg_path))
     finally:
         os.chdir(cwd)
     return REPO / "outputs"

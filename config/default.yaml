@@ -43,8 +43,11 @@ dispersion:
   n_sims: 10000
 
 narrative:
-  enabled: false               # narrative.py not built; enabling MUST implement the
-                               # human-in-the-loop review PAUSE (principle #3)
+  enabled: false               # off by default: the narrative step is a live API
+                               # call gated on the human-in-the-loop review PAUSE
+                               # (principle #3, enforced in narrative._human_review),
+                               # so an enabled run needs ANTHROPIC_API_KEY and a TTY.
+                               # Set true for an interactive demo run.
   model: "claude-sonnet-5"     # current Sonnet. Swap to "claude-opus-5" for the
                                # most capable narrative.
   require_review: true
