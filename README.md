@@ -48,9 +48,10 @@ liquidity-stressed sustainable pace, and a dispersion-aware return band.
   given manager selection, converting quartile inputs into an expected-return band
   rather than a single point.
 - **`cma.py`** — Assembles the comparable public-vs-private CMA table.
-- **`narrative.py`** — *(pending)* Human-in-the-loop generation of a short research note
-  over the finished table, plus optional governed extraction of cash-flow inputs from
-  GP report PDFs.
+- **`narrative.py`** — Human-in-the-loop generation of a short research note over the
+  finished table, plus governed extraction of cash-flow inputs from GP report PDFs.
+  Both steps pause for review and refuse to auto-accept: with no interactive terminal
+  they raise rather than proceed.
 - **`pipeline.py`** — Orchestrator. `run(config)` executes the full sequence and writes
   the labeled table and note. New inputs in → full research output out, reproducibly.
 
@@ -74,14 +75,16 @@ in module logic.
 ## Status
 
 **Working:** all four analytical modules built and unit-tested; config-driven pipeline
-runs end-to-end and produces a labeled CMA table with de-smoothed risk, pacing, and
-manager dispersion.
+runs end-to-end and produces a labeled CMA table carrying de-smoothed risk, pacing,
+`max_sustainable_pace`, and the manager-dispersion band. `narrative.py` is built — the
+governed note and GP-report steps run behind their human-review pause. Full suite green.
+
+`narrative.enabled` ships **false** in `config/default.yaml`: an enabled run makes a live
+API call gated on that review pause, so it needs `ANTHROPIC_API_KEY` and a TTY. Set it
+true for an interactive demo run.
 
 **Pending (not build-order-critical):**
-1. `narrative.py` — the human-in-the-loop note generation and document-extraction step.
-2. Wiring the liquidity result (`max_sustainable_pace`) into the CMA table as its
-   headline liquidity scalar.
-3. Expanded real-proxy datasets (currently synthetic + limited public proxies).
+1. Expanded real-proxy datasets (currently synthetic + limited public proxies).
 
 ---
 
