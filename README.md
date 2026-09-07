@@ -36,7 +36,11 @@ liquidity-stressed sustainable pace, and a dispersion-aware return band.
 - **`desmooth.py`** — Recovers true volatility and public-market correlation from
   serially-correlated appraisal returns. Geltner (1991) first-order and
   Getmansky–Lo–Makarov (2004) MA unsmoothing. *The headline result:* reported vs.
-  de-smoothed risk, side by side.
+  de-smoothed risk, side by side. Both are validated by round-trip against
+  `scripts/make_samples.py`, which imposes a known smoothing (theta = 0.60) *and* a
+  known true correlation (rho = 0.8869, in closed form from the beta linking the two
+  series) — so the demo's 0.69 → 0.90 correlation jump is a recovered quantity, not an
+  asserted one.
 - **`pacing.py`** — Takahashi–Alexander deterministic cash-flow model. Projects
   capital calls, distributions, and NAV for a fund and aggregates staggered vintages
   to a steady-state invested percentage. Answers: *to hold X% invested, commit how
@@ -106,6 +110,22 @@ point:
   solver's bracket edge could report a commitment pace that in fact breaches the liquidity
   constraint — a wrong answer in the one direction that matters for an allocator. Fixed;
   verify the scalar against a hand-checked case before relying on it.
+- **GLM under-recovers correlation when the smoothing isn't finite-order** *(methodology,
+  open).* Appraisal smoothing modelled as AR(1) implies an *infinite*-order geometric
+  weight vector, `b_j = (1-theta) * theta^j`. A truncated MA(q) fit is therefore
+  misspecified against it by construction, and the error runs in the costly direction.
+  Averaged over seeds at n=2,000: q=2 recovers 0.868 correlation against an imposed 0.887,
+  and 16.2% vol against a true 21.5% — better than the reported 0.70 / 10.8% on the same
+  draws, but still leaving the asset looking like more of a diversifier than it is. Geltner, the exact inverse, lands on the truth. The
+  ordering `reported < GLM < Geltner` is pinned by
+  `test_glm_understates_imposed_correlation`. Use GLM where smoothing genuinely runs
+  multi-period; don't read its output as an upper bound on recovered correlation.
+
+Worth stating plainly about the Geltner round-trip: it is the exact algebraic inverse of
+the recursion the sample generator applies, so with theta pinned it recovers the true
+series to machine precision. That demonstrates the code inverts the recursion — it is not
+evidence that de-smoothing works on data whose smoothing process we didn't author. GLM,
+being misspecified, is the more informative test, and it is the one that misses.
 
 These are tracked, not hidden. The de-smoothing methodology fix and the bisection fix are
 the two that affect headline numbers and were prioritized accordingly.
