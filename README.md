@@ -94,9 +94,10 @@ true for an interactive demo run.
 
 ## Known limitations & bugs surfaced by running
 
-Passing unit tests is not correctness. The following issues surfaced only by driving
-the full pipeline on real inputs â€” documented here because *how* they surfaced is the
-point:
+Passing unit tests is not correctness. Most of the following surfaced only by driving the
+full pipeline on real inputs; the last surfaced from a round-trip test against a known
+target, which is the other thing unit tests checking mechanics won't give you. Documented
+here because *how* they surfaced is the point:
 
 - **Geometric vs. arithmetic return on the de-smoothed series** *(methodology).*
   De-smoothing changes the return path; the annualization/compounding convention has to
@@ -127,8 +128,11 @@ series to machine precision. That demonstrates the code inverts the recursion â€
 evidence that de-smoothing works on data whose smoothing process we didn't author. GLM,
 being misspecified, is the more informative test, and it is the one that misses.
 
-These are tracked, not hidden. The de-smoothing methodology fix and the bisection fix are
-the two that affect headline numbers and were prioritized accordingly.
+These are tracked, not hidden. Three affect headline numbers. The de-smoothing methodology
+fix and the bisection fix are closed, and were prioritized accordingly. The GLM
+under-recovery is open: it does not touch the quoted 0.90, which comes from Geltner, but it
+caps what the MA(q) path can report and should be closed before that path is used on data
+whose smoothing runs deeper than one lag.
 
 ---
 
