@@ -18,9 +18,10 @@ pacing:                     # Takahashi-Alexander params
   commitment: 100.0
   fund_life: 12            # years
   bow_factor: 2.5          # B: back-loads distributions
-  growth_rate: 0.13        # G: annual NAV growth
-  contribution_rate: 0.25  # RC: fraction of uncalled called per period
-  yield_rate: 0.03         # min distribution yield on NAV
+  growth_rate: 0.119       # G: ANNUAL NAV growth. 11.9% holds single-fund TVPI at 1.60,
+                           #    consistent with the Module 4 median (see README limitations)
+  contribution_rate: 0.25  # RC: PER-PERIOD (quarterly) fraction of uncalled called
+  yield_rate: 0.03         # Y: ANNUAL min distribution yield on NAV, compounded to per-period
   periods_per_year: 4
   program_commitments:      # multi-vintage program (annual commitments)
     schedule: [100, 100, 100, 100, 100]

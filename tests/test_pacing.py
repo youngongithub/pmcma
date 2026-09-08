@@ -85,3 +85,28 @@ def test_project_program_aggregates_and_invested_pct():
 
     assert prog["cumulative_committed"].iloc[-1] == sum(commits)
     assert 0.0 < prog.attrs["peak_invested_pct"] < 5.0
+
+
+# ---------------------------------------------------------------------------
+# Unit-convention regression
+# ---------------------------------------------------------------------------
+
+def test_yield_floor_is_annual_and_compounded_to_per_period():
+    """Regression: yield_rate is ANNUAL and must be compounded down like growth_rate.
+
+    Previously it was used raw per period, so a 3%/yr floor ran as 3%/quarter
+    (12.55%/yr) through the J-curve and moved program invested-% by ~10pp while
+    every mechanical test passed. Growth is switched off and the bow made
+    negligible early so the floor is the only distribution term in period 2.
+    """
+    # quarterly: implied per-period rate is (1+Y)^(1/4)-1, not Y
+    p4 = base_params(growth_rate=0.0, bow_factor=50.0, yield_rate=0.03, periods_per_year=4)
+    df4 = project_fund(p4)
+    implied_q = df4["distribution"].iloc[1] / df4["nav"].iloc[0]   # g = 0, so grown == nav(1)
+    assert implied_q == pytest.approx(1.03 ** 0.25 - 1, rel=1e-9)
+    assert implied_q != pytest.approx(0.03, rel=1e-3)
+
+    # annual stepping: the same config must distribute exactly Y of NAV
+    p1 = base_params(growth_rate=0.0, bow_factor=50.0, yield_rate=0.03, periods_per_year=1)
+    df1 = project_fund(p1)
+    assert df1["distribution"].iloc[1] / df1["nav"].iloc[0] == pytest.approx(0.03, rel=1e-9)

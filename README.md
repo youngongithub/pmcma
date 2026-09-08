@@ -122,17 +122,19 @@ they surfaced is the point:
   Geltner, the exact inverse, lands on the truth. The ordering `reported < GLM < Geltner`
   is pinned by `test_glm_understates_imposed_correlation`. Use GLM where smoothing genuinely
   runs multi-period; don't read its output as an upper bound on recovered correlation.
-- **Pacing yield floor is per-period while growth is annualized** *(methodology, open).*
-  `growth_rate` is compounded down to a per-period rate (`pacing.py:36`), but `yield_rate`
-  is used directly as the per-period distribution floor (`pacing.py:44`). So the config's
-  `yield_rate: 0.03`, which reads as an annual 3%, behaves as 3% *per quarter* — 12.55%
-  annualized — and it is the binding term for the first 11 quarters, i.e. the fund's entire
-  drawdown period. Converting it the way growth is converted moves single-fund peak NAV
-  from 96.8 to 110.3 and the program's peak invested percentage from **86.5% to 96.3%**.
-  That swing materially weakens the over-commitment argument the 86.5% is used to make.
-  Open rather than fixed because which convention was intended is a modelling decision, not
-  a bug fix: if 3%/quarter is deliberate the config comment should say so; if not, it is a
-  one-line change with a headline consequence.
+- **Pacing yield floor was per-period while growth was annualized** *(methodology,
+  fixed).* `growth_rate` was compounded down to a per-period rate but `yield_rate` was used
+  raw, so the config's `yield_rate: 0.03` — an annual 3% — behaved as 3% *per quarter*
+  (12.55% annualized) and was the binding distribution term for the first 11 quarters, the
+  fund's entire J-curve. Surfaced by reading the model, not running it; every mechanical
+  test passed. The record settled the intended convention: the config labelled growth
+  "annual" and the contribution rate "per period", and yield was the one rate with no unit
+  on it. Fix: `yield_rate` is now compounded down exactly as `growth_rate` is
+  (`pacing.py`), all three rates carry unit labels in `PacingParams` and the config, and
+  `growth_rate` moved from 13% to 11.9% to hold single-fund TVPI at 1.60 so Module 2 stays
+  consistent with the Module 4 median. Headline consequences: program peak invested
+  86.5% → **94.6%**; max sustainable pace 0.873× → **0.829×** (fewer early distributions
+  means less liquidity under stress — the right direction for a corrected error to move).
 
 Worth stating plainly about the Geltner round-trip: it is the exact algebraic inverse of
 the recursion the sample generator applies, so with theta pinned it recovers the true
@@ -140,12 +142,11 @@ series to machine precision. That demonstrates the code inverts the recursion �
 evidence that de-smoothing works on data whose smoothing process we didn't author. GLM,
 being misspecified, is the more informative test, and it is the one that misses.
 
-These are tracked, not hidden. Four affect headline numbers. The de-smoothing methodology
-fix and the bisection fix are closed, and were prioritized accordingly. Two are open, and
-they differ in urgency: the GLM under-recovery does not touch the quoted 0.90, which comes
-from Geltner, so it caps a path the demo doesn't currently take. The pacing yield
-convention does touch a quoted number — the 86.5% invested figure — and should be settled
-before that figure is presented again.
+These are tracked, not hidden. Four affect headline numbers. Three are closed — the
+de-smoothing methodology fix, the bisection fix, and the pacing yield convention — and the
+last of those moved two quoted figures (invested % and sustainable pace) when it closed.
+One is open: the GLM under-recovery, which does not touch the quoted 0.90 (that comes from
+Geltner) and so caps a path the demo doesn't currently take.
 
 ---
 

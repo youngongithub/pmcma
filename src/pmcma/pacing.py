@@ -11,6 +11,15 @@ from dataclasses import dataclass, replace
 
 @dataclass
 class PacingParams:
+    """Units matter here — a per-period rate used as annual (or vice versa) passes
+    every mechanical test and silently moves the headline invested-% figure.
+
+      fund_life          years
+      growth_rate        ANNUAL NAV growth (G); compounded down to per-period
+      yield_rate         ANNUAL minimum distribution yield (Y); compounded down like G
+      contribution_rate  PER-PERIOD fraction of uncalled commitment called (RC)
+      bow_factor         unitless back-loading exponent (B)
+    """
     commitment: float
     fund_life: int
     bow_factor: float
@@ -26,14 +35,15 @@ def project_fund(p: PacingParams) -> pd.DataFrame:
 
     Per period t (of T = fund_life * periods_per_year):
       call(t)  = contribution_rate * uncalled_commitment(t)
-      rate_of_dist(t) = max(yield_rate, (t/T) ** bow_factor)   # bow back-loads
+      rate_of_dist(t) = max(yield_per_period, (t/T) ** bow_factor)   # bow back-loads
       distribution(t) = rate_of_dist(t) * nav(t-1) * (1 + growth_per_period)
       nav(t)   = nav(t-1) * (1 + growth_per_period) + call(t) - distribution(t)
     """
     ppy = p.periods_per_year
     T = int(round(p.fund_life * ppy))
-    # annual NAV growth compounded down to a per-period rate
+    # annual NAV growth and annual yield floor, both compounded down to per-period
     g = (1.0 + p.growth_rate) ** (1.0 / ppy) - 1.0
+    y = (1.0 + p.yield_rate) ** (1.0 / ppy) - 1.0
 
     rows = []
     nav_prev = 0.0
@@ -41,7 +51,7 @@ def project_fund(p: PacingParams) -> pd.DataFrame:
     for t in range(1, T + 1):
         uncalled = p.commitment - cum_paid
         call = p.contribution_rate * uncalled
-        rate = max(p.yield_rate, (t / T) ** p.bow_factor)
+        rate = max(y, (t / T) ** p.bow_factor)
         grown = nav_prev * (1.0 + g)
         dist = rate * grown
         nav = grown + call - dist
