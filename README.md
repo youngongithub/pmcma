@@ -94,10 +94,11 @@ true for an interactive demo run.
 
 ## Known limitations & bugs surfaced by running
 
-Passing unit tests is not correctness. Most of the following surfaced only by driving the
-full pipeline on real inputs; the last surfaced from a round-trip test against a known
-target, which is the other thing unit tests checking mechanics won't give you. Documented
-here because *how* they surfaced is the point:
+Passing unit tests is not correctness. These surfaced three different ways — driving the
+full pipeline on real inputs, round-tripping an estimator against a known imposed target,
+and reading the model closely enough to catch a unit-convention mismatch. None of the three
+is something a unit test checking mechanics will give you. Documented here because *how*
+they surfaced is the point:
 
 - **Geometric vs. arithmetic return on the de-smoothed series** *(methodology).*
   De-smoothing changes the return path; the annualization/compounding convention has to
@@ -117,10 +118,21 @@ here because *how* they surfaced is the point:
   misspecified against it by construction, and the error runs in the costly direction.
   Averaged over seeds at n=2,000: q=2 recovers 0.868 correlation against an imposed 0.887,
   and 16.2% vol against a true 21.5% — better than the reported 0.70 / 10.8% on the same
-  draws, but still leaving the asset looking like more of a diversifier than it is. Geltner, the exact inverse, lands on the truth. The
-  ordering `reported < GLM < Geltner` is pinned by
-  `test_glm_understates_imposed_correlation`. Use GLM where smoothing genuinely runs
-  multi-period; don't read its output as an upper bound on recovered correlation.
+  draws, but still leaving the asset looking like more of a diversifier than it is.
+  Geltner, the exact inverse, lands on the truth. The ordering `reported < GLM < Geltner`
+  is pinned by `test_glm_understates_imposed_correlation`. Use GLM where smoothing genuinely
+  runs multi-period; don't read its output as an upper bound on recovered correlation.
+- **Pacing yield floor is per-period while growth is annualized** *(methodology, open).*
+  `growth_rate` is compounded down to a per-period rate (`pacing.py:36`), but `yield_rate`
+  is used directly as the per-period distribution floor (`pacing.py:44`). So the config's
+  `yield_rate: 0.03`, which reads as an annual 3%, behaves as 3% *per quarter* — 12.55%
+  annualized — and it is the binding term for the first 11 quarters, i.e. the fund's entire
+  drawdown period. Converting it the way growth is converted moves single-fund peak NAV
+  from 96.8 to 110.3 and the program's peak invested percentage from **86.5% to 96.3%**.
+  That swing materially weakens the over-commitment argument the 86.5% is used to make.
+  Open rather than fixed because which convention was intended is a modelling decision, not
+  a bug fix: if 3%/quarter is deliberate the config comment should say so; if not, it is a
+  one-line change with a headline consequence.
 
 Worth stating plainly about the Geltner round-trip: it is the exact algebraic inverse of
 the recursion the sample generator applies, so with theta pinned it recovers the true
@@ -128,11 +140,12 @@ series to machine precision. That demonstrates the code inverts the recursion �
 evidence that de-smoothing works on data whose smoothing process we didn't author. GLM,
 being misspecified, is the more informative test, and it is the one that misses.
 
-These are tracked, not hidden. Three affect headline numbers. The de-smoothing methodology
-fix and the bisection fix are closed, and were prioritized accordingly. The GLM
-under-recovery is open: it does not touch the quoted 0.90, which comes from Geltner, but it
-caps what the MA(q) path can report and should be closed before that path is used on data
-whose smoothing runs deeper than one lag.
+These are tracked, not hidden. Four affect headline numbers. The de-smoothing methodology
+fix and the bisection fix are closed, and were prioritized accordingly. Two are open, and
+they differ in urgency: the GLM under-recovery does not touch the quoted 0.90, which comes
+from Geltner, so it caps a path the demo doesn't currently take. The pacing yield
+convention does touch a quoted number — the 86.5% invested figure — and should be settled
+before that figure is presented again.
 
 ---
 
